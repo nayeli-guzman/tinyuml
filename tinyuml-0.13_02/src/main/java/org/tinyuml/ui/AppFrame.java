@@ -63,6 +63,9 @@ import org.tinyuml.ui.diagram.EditorStateListener;
 import org.tinyuml.ui.diagram.SelectionListener;
 import org.tinyuml.util.ApplicationResources;
 import org.tinyuml.util.MethodCall;
+import org.tinyuml.umldraw.structure.PackageElement;
+import org.tinyuml.umldraw.structure.ClassElement;
+import org.tinyuml.umldraw.structure.ComponentElement;
 
 /**
  * This class implements the Application frame. The top-level UI elements are
@@ -75,11 +78,12 @@ import org.tinyuml.util.MethodCall;
 
 
 public class AppFrame extends JFrame
-implements EditorStateListener, AppCommandListener, SelectionListener {
+        implements EditorStateListener, AppCommandListener, SelectionListener {
 
   private JTabbedPane tabbedPane;
   private JLabel coordLabel = new JLabel("    ");
   private JLabel memLabel = new JLabel("    ");
+  private JLabel elementCountLabel = new JLabel("    ");
   private UmlModel umlModel;
   private DiagramEditor currentEditor;
   private transient Timer timer = new Timer();
@@ -91,7 +95,7 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
   private LinkedList<DiagramEditor> diagramEditors;
   private Collection<DiagramElement> lastCopiedElements;
   private transient Map<String, MethodCall> selectorMap =
-    new HashMap<String, MethodCall>();
+          new HashMap<String, MethodCall>();
 
 
   /**
@@ -102,7 +106,7 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
    */
   @SuppressWarnings("PMD.UnusedFormalParameter")
   private void readObject(ObjectInputStream stream)
-    throws IOException, ClassNotFoundException {
+          throws IOException, ClassNotFoundException {
     timer = new Timer();
     staticToolbarManager = null;
     editorDispatcher = null;
@@ -112,16 +116,16 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
     initSelectorMap();
   }
 
- 
+
 
   /**
    * Creates a new instance of AppFrame.
    */
   public AppFrame() {
-	
-	diagramEditors = new LinkedList<DiagramEditor>();
-	lastCopiedElements = null;
-		
+
+    diagramEditors = new LinkedList<DiagramEditor>();
+    lastCopiedElements = null;
+
     setTitle(getResourceString("application.title"));
     setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
     editorDispatcher = new EditorCommandDispatcher(this);
@@ -146,9 +150,10 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
     initSelectorMap();
     //setExtendedState(JFrame.MAXIMIZED_BOTH);
   }
- 
-  
- 
+
+
+
+
 
 
   /**
@@ -156,16 +161,16 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
    * @return the current editor
    */
   public DiagramEditor getCurrentEditor() {
-	  return currentEditor;
-	  //int currentTabIndex = tabbedPane.getSelectedIndex();		
-	  //return diagramEditors.get(currentTabIndex);
+    return currentEditor;
+    //int currentTabIndex = tabbedPane.getSelectedIndex();
+    //return diagramEditors.get(currentTabIndex);
   }
   /**
-   * Returns the last collection of items ready to copy. 
+   * Returns the last collection of items ready to copy.
    * @return Collection of items ready to copy
    */
   public Collection<DiagramElement> getElementsToCopy(){
-	  return lastCopiedElements;
+    return lastCopiedElements;
   }
   /**
    * Returns the menu manager.
@@ -210,9 +215,10 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
       /** {@inheritDoc} */
       public void labelTextChanged(Label label) {
         tabbedPane.setTitleAt(tabbedPane.indexOfComponent(comp),
-                              label.getText());
+                label.getText());
       }
     });
+    updateElementCount();
   }
 
   /**
@@ -241,6 +247,7 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
   private void installStatusbar() {
     JPanel statusbar = new JPanel(new BorderLayout());
     statusbar.add(coordLabel, BorderLayout.WEST);
+    statusbar.add(elementCountLabel, BorderLayout.CENTER);
     statusbar.add(memLabel, BorderLayout.EAST);
     getContentPane().add(statusbar, BorderLayout.SOUTH);
   }
@@ -267,7 +274,7 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
    */
   public void mouseMoved(EditorMouseEvent event) {
     coordLabel.setText(String.format("(%.1f, %.1f)", event.getX(),
-      event.getY()));
+            event.getY()));
   }
 
   /**
@@ -284,6 +291,7 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
     // spring loading is implemented here
     staticToolbarManager.doClick("SELECT_MODE");
     updateMenuAndToolbars(editor);
+    updateElementCount();
   }
 
   /**
@@ -291,6 +299,7 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
    */
   public void elementRemoved(DiagramEditor editor) {
     updateMenuAndToolbars(editor);
+    updateElementCount();
   }
 
   /**
@@ -314,15 +323,15 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
    */
   public void selectionStateChanged() {
     boolean hasSelection = getCurrentEditor().getSelectedElements().size() > 0;
-   
+
     menumanager.enableMenuItem("CUT", hasSelection);
     menumanager.enableMenuItem("COPY", hasSelection);
-     
+
     menumanager.enableMenuItem("DELETE", hasSelection);
-   
+
     toolbarmanager.enableButton("CUT", hasSelection);
     toolbarmanager.enableButton("COPY", hasSelection);
-     
+
     toolbarmanager.enableButton("DELETE", hasSelection);
   }
 
@@ -336,33 +345,33 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
   private void initSelectorMap() {
     try {
       selectorMap.put("NEW_MODEL", new MethodCall(
-        getClass().getMethod("newModel")));
+              getClass().getMethod("newModel")));
       selectorMap.put("OPEN_MODEL", new MethodCall(
-        getClass().getMethod("openModel")));
+              getClass().getMethod("openModel")));
       selectorMap.put("SAVE_AS", new MethodCall(
-        getClass().getMethod("saveAs")));
+              getClass().getMethod("saveAs")));
       selectorMap.put("SAVE", new MethodCall(
-        getClass().getMethod("save")));
+              getClass().getMethod("save")));
       selectorMap.put("EXPORT_GFX", new MethodCall(
-        getClass().getMethod("exportGfx")));
-      
+              getClass().getMethod("exportGfx")));
+
       selectorMap.put("CUT", new MethodCall(
-    	getClass().getMethod("cut")));
+              getClass().getMethod("cut")));
       selectorMap.put("COPY", new MethodCall(
-    	getClass().getMethod("copy")));
+              getClass().getMethod("copy")));
       selectorMap.put("PASTE", new MethodCall(
-        getClass().getMethod("paste")));
-      
+              getClass().getMethod("paste")));
+
       selectorMap.put("DELETE", new MethodCall(
-        getClass().getMethod("delete")));
+              getClass().getMethod("delete")));
       selectorMap.put("EDIT_SETTINGS", new MethodCall(
-        getClass().getMethod("editSettings")));
+              getClass().getMethod("editSettings")));
       selectorMap.put("QUIT", new MethodCall(
-        getClass().getMethod("quitApplication")));
+              getClass().getMethod("quitApplication")));
       selectorMap.put("ABOUT", new MethodCall(
-        getClass().getMethod("about")));
+              getClass().getMethod("about")));
       selectorMap.put("HELP_CONTENTS", new MethodCall(
-        getClass().getMethod("displayHelpContents")));
+              getClass().getMethod("displayHelpContents")));
     } catch (NoSuchMethodException ex) {
       ex.printStackTrace();
     }
@@ -399,9 +408,9 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
   private boolean canQuit() {
     if (currentEditor.canUndo()) {
       return JOptionPane.showConfirmDialog(this,
-        ApplicationResources.getInstance().getString("confirm.quit.message"),
-        ApplicationResources.getInstance().getString("confirm.quit.title"),
-        JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
+              ApplicationResources.getInstance().getString("confirm.quit.message"),
+              ApplicationResources.getInstance().getString("confirm.quit.title"),
+              JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
     }
     return true;
   }
@@ -424,6 +433,7 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
       diagram.setLabelText("Class diagram 1");
       tabbedPane.removeAll();
       createEditor(diagram);
+      updateElementCount();
     }
   }
 
@@ -434,9 +444,9 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
   private boolean canCreateNewModel() {
     if (currentEditor != null && currentEditor.canUndo()) {
       return JOptionPane.showConfirmDialog(this,
-        ApplicationResources.getInstance().getString("confirm.new.message"),
-        ApplicationResources.getInstance().getString("confirm.new.title"),
-        JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
+              ApplicationResources.getInstance().getString("confirm.new.message"),
+              ApplicationResources.getInstance().getString("confirm.new.title"),
+              JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
     }
     return true;
   }
@@ -472,15 +482,35 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
   }
 
   /**
+   * Updates the element count label in the status bar.
+   */
+  /**
+   * Actualiza el label de conteo en la barra de estado.
+   */
+  private void updateElementCount() {
+    if (currentEditor == null) {
+      elementCountLabel.setText("");
+      return;
+    }
+
+    String countString = currentEditor.getElementCountString();
+    elementCountLabel.setText(countString);
+
+    // opcional, solo para depuraciÃ³n
+    System.out.println("Element count: " + countString);
+  }
+
+
+  /**
    * Exports graphics as SVG.
    */
   public void exportGfx() {
     JFileChooser fileChooser = new JFileChooser();
     fileChooser.setDialogTitle(getResourceString("dialog.exportgfx.title"));
     FileNameExtensionFilter svgFilter = new FileNameExtensionFilter(
-      "Scalable Vector Graphics file (*.svg)", "svg");
+            "Scalable Vector Graphics file (*.svg)", "svg");
     FileNameExtensionFilter pngFilter = new FileNameExtensionFilter(
-      "Portable Network Graphics file (*.png)", "png");
+            "Portable Network Graphics file (*.png)", "png");
     fileChooser.addChoosableFileFilter(svgFilter);
     fileChooser.addChoosableFileFilter(pngFilter);
     fileChooser.setAcceptAllFileFilterUsed(false);
@@ -491,8 +521,8 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
           exporter.writeSVG(getCurrentEditor(), fileChooser.getSelectedFile());
         } catch (IOException ex) {
           JOptionPane.showMessageDialog(this, ex.getMessage(),
-            getResourceString("error.exportgfx.title"),
-            JOptionPane.ERROR_MESSAGE);
+                  getResourceString("error.exportgfx.title"),
+                  JOptionPane.ERROR_MESSAGE);
         }
       } else if (fileChooser.getFileFilter() == pngFilter) {
         try {
@@ -500,8 +530,8 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
           exporter.writePNG(getCurrentEditor(), fileChooser.getSelectedFile());
         } catch (IOException ex) {
           JOptionPane.showMessageDialog(this, ex.getMessage(),
-            getResourceString("error.exportgfx.title"),
-            JOptionPane.ERROR_MESSAGE);
+                  getResourceString("error.exportgfx.title"),
+                  JOptionPane.ERROR_MESSAGE);
         }
       }
     }
@@ -513,7 +543,7 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
    */
   private FileNameExtensionFilter createModelFileFilter() {
     return new FileNameExtensionFilter(
-      "TinyUML serialized model file (*.tsm)", "tsm");
+            "TinyUML serialized model file (*.tsm)", "tsm");
   }
 
   /**
@@ -531,10 +561,11 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
           tabbedPane.removeAll();
           createEditor((StructureDiagram) umlModel.getDiagrams().get(0));
           updateFrameTitle();
+          updateElementCount();
         } catch (IOException ex) {
           JOptionPane.showMessageDialog(this, ex.getMessage(),
-            getResourceString("error.readfile.title"),
-            JOptionPane.ERROR_MESSAGE);
+                  getResourceString("error.readfile.title"),
+                  JOptionPane.ERROR_MESSAGE);
         }
       }
     }
@@ -547,9 +578,9 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
   private boolean canOpen() {
     if (currentEditor.canUndo()) {
       return JOptionPane.showConfirmDialog(this,
-        ApplicationResources.getInstance().getString("confirm.open.message"),
-        ApplicationResources.getInstance().getString("confirm.open.title"),
-        JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
+              ApplicationResources.getInstance().getString("confirm.open.message"),
+              ApplicationResources.getInstance().getString("confirm.open.title"),
+              JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
     }
     return true;
   }
@@ -593,7 +624,7 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
     } catch (IOException ex) {
       ex.printStackTrace();
       JOptionPane.showMessageDialog(this, ex.getMessage(),
-        getResourceString("error.savefile.title"), JOptionPane.ERROR_MESSAGE);
+              getResourceString("error.savefile.title"), JOptionPane.ERROR_MESSAGE);
     }
     return result;
   }
@@ -604,19 +635,19 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
   private void updateFrameTitle() {
     if (currentFile != null) {
       setTitle(ApplicationResources.getInstance()
-        .getString("application.title") + " [" + currentFile.getName() + "]");
+              .getString("application.title") + " [" + currentFile.getName() + "]");
     } else {
       setTitle(ApplicationResources.getInstance()
-        .getString("application.title"));
+              .getString("application.title"));
     }
   }
   /**
    * cut the current selection.
    */
   public void cut(){
-	  copy();
-	  delete();
-	  selectionStateChanged();
+    copy();
+    delete();
+    selectionStateChanged();
   }
   /**
    * Keeps track of the last copied elements (the ones selected when
@@ -624,20 +655,20 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
    * Creado para cumplir con la solicitud E de la tarea.
    */
   public void copy(){
-	  boolean hasSelection = getCurrentEditor().getSelectedElements().size() > 0;
+    boolean hasSelection = getCurrentEditor().getSelectedElements().size() > 0;
 
-	  if(hasSelection)
-	    lastCopiedElements = getCurrentEditor().getSelectedElements();
+    if(hasSelection)
+      lastCopiedElements = getCurrentEditor().getSelectedElements();
 
-	  //adicionalmente, hay que habilitar el botón PASTE!
-	  menumanager.enableMenuItem("PASTE", hasSelection);
-	  toolbarmanager.enableButton("PASTE", hasSelection);
+    //adicionalmente, hay que habilitar el botï¿½n PASTE!
+    menumanager.enableMenuItem("PASTE", hasSelection);
+    toolbarmanager.enableButton("PASTE", hasSelection);
   }
   /**
    * paste the current selection.
    */
   public void paste(){
-		getCurrentEditor().pasteElement(lastCopiedElements);
+    getCurrentEditor().pasteElement(lastCopiedElements);
   }
   /**
    * Deletes the current selection.
@@ -651,7 +682,7 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
    */
   public void about() {
     JOptionPane.showMessageDialog(this, getResourceString("dialog.about.text"),
-      getResourceString("dialog.about.title"), JOptionPane.INFORMATION_MESSAGE);
+            getResourceString("dialog.about.title"), JOptionPane.INFORMATION_MESSAGE);
   }
 
   /**
@@ -663,11 +694,14 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
       Desktop.getDesktop().browse(helpUri);
     } catch (IOException ex) {
       JOptionPane.showMessageDialog(this,
-        getResourceString("error.nohelp.message"),
-        getResourceString("error.nohelp.title"),
-        JOptionPane.ERROR_MESSAGE);
+              getResourceString("error.nohelp.message"),
+              getResourceString("error.nohelp.title"),
+              JOptionPane.ERROR_MESSAGE);
     } catch (URISyntaxException ignore) {
       ignore.printStackTrace();
     }
   }
+
+
+
 }

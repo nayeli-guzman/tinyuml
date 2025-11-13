@@ -19,8 +19,11 @@
  */
 package org.tinyuml.ui.diagram;
 
+import java.awt.AlphaComposite;
 import java.awt.Color;
+import java.awt.Composite;
 import java.awt.Dimension;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
@@ -78,6 +81,8 @@ import org.tinyuml.ui.diagram.commands.SetConnectionNavigabilityCommand;
 import org.tinyuml.umldraw.shared.UmlConnection;
 import org.tinyuml.umldraw.structure.Association;
 import org.tinyuml.umldraw.structure.ClassElement;
+import org.tinyuml.umldraw.structure.PackageElement;
+import org.tinyuml.umldraw.structure.ComponentElement;
 import org.tinyuml.util.Command;
 
 /**
@@ -90,8 +95,8 @@ import org.tinyuml.util.Command;
  * @version 1.0
  */
 public class DiagramEditor extends JComponent
-implements ActionListener, MouseListener, MouseMotionListener,
-DiagramEditorNotification, DiagramOperations, NodeChangeListener {
+        implements ActionListener, MouseListener, MouseMotionListener,
+        DiagramEditorNotification, DiagramOperations, NodeChangeListener {
 
   // For now, we define the margins of the diagram as constants
   private static final double MARGIN_TOP = 25;
@@ -104,7 +109,7 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
   private transient CreationHandler creationHandler;
   private transient LineHandler lineHandler;
   private transient List<UndoableEditListener> editListeners =
-    new ArrayList<UndoableEditListener>();
+          new ArrayList<UndoableEditListener>();
   private transient Scaling scaling = Scaling.SCALING_100;
 
   /**
@@ -115,7 +120,7 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
    */
   @SuppressWarnings("PMD.UnusedFormalParameter")
   private void readObject(ObjectInputStream stream)
-    throws IOException, ClassNotFoundException {
+          throws IOException, ClassNotFoundException {
     initEditorMembers();
   }
 
@@ -137,7 +142,7 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
    * used for debug output.
    */
   private List<EditorStateListener> editorListeners =
-    new ArrayList<EditorStateListener>();
+          new ArrayList<EditorStateListener>();
 
   /**
    * To edit the captions in the diagram.
@@ -205,8 +210,8 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
    */
   private void setToDiagramSize() {
     setPreferredSize(new Dimension(
-      (int) (diagram.getSize().getWidth() + MARGIN_RIGHT + MARGIN_LEFT),
-      (int) (diagram.getSize().getHeight() + MARGIN_BOTTOM + MARGIN_TOP)));
+            (int) (diagram.getSize().getWidth() + MARGIN_RIGHT + MARGIN_LEFT),
+            (int) (diagram.getSize().getHeight() + MARGIN_BOTTOM + MARGIN_TOP)));
     invalidate();
   }
 
@@ -222,13 +227,13 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
 
     // install Escape and Delete KeyBinding
     getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("ESCAPE"),
-      "cancelEditing");
+            "cancelEditing");
     getActionMap().put("cancelEditing", new AbstractAction() {
       /** {@inheritDoc} */
       public void actionPerformed(ActionEvent e) { cancelEditing(); }
     });
     getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("DELETE"),
-      "deleteSelection");
+            "deleteSelection");
     getActionMap().put("deleteSelection", new AbstractAction() {
       /** {@inheritDoc} */
       public void actionPerformed(ActionEvent e) { deleteSelection(); }
@@ -257,39 +262,39 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
    * Pastes into this diagram the handed Elements
    */
   public void pasteElement(Collection<DiagramElement> elements){
-	// este hash asocia cada elemento de "elements" con su clon
-	HashMap<DiagramElement, DiagramElement> clonedElements =
-			new HashMap<DiagramElement, DiagramElement>();
-	
-	for(DiagramElement elem : elements){
-		DiagramElement copia = (DiagramElement)elem.clone();
-		
-		// le cambiamos el parent al objeto clonado para poder ponerlo
-		// en este diagrama, pues puede venir de otro diagrama!
-		copia.setParent(getDiagram());
-		
-		clonedElements.put(elem, copia);
-	}
-	
-	// hasta aquí tengo el hash de cada objeto con su clon (del nuevo diagrama)
-	// ahora debo iterar por cada Connection en elements y rehacer sus conexiones
-	// tomaré el ejemplo desde PasteElementCommand.
-	for(DiagramElement elem : elements){
-		if(elem instanceof Connection){
-			Connection currentConnection = (Connection)elem;
-			Connection newConnection = (Connection)clonedElements.get(currentConnection);
-			
-			Node originalNode1 = currentConnection.getNode1();
-			Node originalNode2 = currentConnection.getNode2();
-			
-			newConnection.setNode1((Node)clonedElements.get(originalNode1));
-			newConnection.setNode2((Node)clonedElements.get(originalNode2));
-			
-			newConnection.getNode1().addConnection(newConnection);
-			newConnection.getNode2().addConnection(newConnection);
-		}
-	}
-	execute(new PasteElementCommand(this, clonedElements.values()));
+    // este hash asocia cada elemento de "elements" con su clon
+    HashMap<DiagramElement, DiagramElement> clonedElements =
+            new HashMap<DiagramElement, DiagramElement>();
+
+    for(DiagramElement elem : elements){
+      DiagramElement copia = (DiagramElement)elem.clone();
+
+      // le cambiamos el parent al objeto clonado para poder ponerlo
+      // en este diagrama, pues puede venir de otro diagrama!
+      copia.setParent(getDiagram());
+
+      clonedElements.put(elem, copia);
+    }
+
+    // hasta aquï¿½ tengo el hash de cada objeto con su clon (del nuevo diagrama)
+    // ahora debo iterar por cada Connection en elements y rehacer sus conexiones
+    // tomarï¿½ el ejemplo desde PasteElementCommand.
+    for(DiagramElement elem : elements){
+      if(elem instanceof Connection){
+        Connection currentConnection = (Connection)elem;
+        Connection newConnection = (Connection)clonedElements.get(currentConnection);
+
+        Node originalNode1 = currentConnection.getNode1();
+        Node originalNode2 = currentConnection.getNode2();
+
+        newConnection.setNode1((Node)clonedElements.get(originalNode1));
+        newConnection.setNode2((Node)clonedElements.get(originalNode2));
+
+        newConnection.getNode1().addConnection(newConnection);
+        newConnection.getNode2().addConnection(newConnection);
+      }
+    }
+    execute(new PasteElementCommand(this, clonedElements.values()));
   }
 
   // *************************************************************************
@@ -313,7 +318,7 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
   public void paintComponentNonScreen(Graphics g) {
     Dimension canvasSize = getTotalCanvasSize();
     Rectangle clipBounds = new Rectangle(0, 0, canvasSize.width,
-      canvasSize.height);
+            canvasSize.height);
     g.setClip(clipBounds);
     paintComponent(g, clipBounds, false);
   }
@@ -330,9 +335,9 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
     setRenderingHints(g2d);
     if (scaling.getScaleFactor() != 1.0) {
       g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-        RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+              RenderingHints.VALUE_INTERPOLATION_BILINEAR);
       g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-        RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+              RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
     }
 
     boolean gridVisible = diagram.isGridVisible();
@@ -350,6 +355,7 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
     // Draw user interface specific elements (e.g. selections)
     if (toScreen) {
       editorMode.draw(drawingContext);
+      // drawElementCount();   // â† elimina esta lÃ­nea
     }
     restoreRenderingHints(g2d);
     diagram.setGridVisible(gridVisible);
@@ -361,9 +367,9 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
    */
   private void setRenderingHints(Graphics2D g2d) {
     g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-      RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
     g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-      RenderingHints.VALUE_ANTIALIAS_ON);
+            RenderingHints.VALUE_ANTIALIAS_ON);
   }
 
   /**
@@ -372,14 +378,14 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
    */
   private void restoreRenderingHints(Graphics2D g2d) {
     g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-      RenderingHints.VALUE_TEXT_ANTIALIAS_DEFAULT);
+            RenderingHints.VALUE_TEXT_ANTIALIAS_DEFAULT);
     /*
     if (scaling.getScaleFactor() != 1.0) {
       g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
         RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
     }*/
     g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-      RenderingHints.VALUE_ANTIALIAS_DEFAULT);
+            RenderingHints.VALUE_ANTIALIAS_DEFAULT);
   }
 
   /**
@@ -567,7 +573,7 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
     Dimension result = new Dimension();
     result.width = (int) (diagramSize.getWidth() + MARGIN_LEFT + MARGIN_RIGHT);
     result.height = (int) (diagramSize.getHeight() + MARGIN_TOP +
-      MARGIN_BOTTOM);
+            MARGIN_BOTTOM);
     return result;
   }
 
@@ -618,7 +624,7 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
    */
   public void setCreateConnectionMode(RelationType relationType) {
     lineHandler.setRelationType(relationType,
-      getDiagram().getElementFactory().getConnectMethod(relationType));
+            getDiagram().getElementFactory().getConnectMethod(relationType));
     editorMode = lineHandler;
   }
 
@@ -690,11 +696,11 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
    */
   public void rectilinearToDirect() {
     if (getSelectedElements().size() > 0 &&
-        getSelectedElements().get(0) instanceof UmlConnection) {
+            getSelectedElements().get(0) instanceof UmlConnection) {
       UmlConnection conn = (UmlConnection) getSelectedElements().get(0);
       execute(new ConvertConnectionTypeCommand(this, conn,
-        new SimpleConnection()));
-       // we can only tell the selection handler to forget about the selection
+              new SimpleConnection()));
+      // we can only tell the selection handler to forget about the selection
       selectionHandler.deselectAll();
     }
   }
@@ -704,11 +710,11 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
    */
   public void directToRectilinear() {
     if (getSelectedElements().size() > 0 &&
-        getSelectedElements().get(0) instanceof UmlConnection) {
+            getSelectedElements().get(0) instanceof UmlConnection) {
       UmlConnection conn = (UmlConnection) getSelectedElements().get(0);
       execute(new ConvertConnectionTypeCommand(this, conn,
-        new RectilinearConnection()));
-       // we can only tell the selection handler to forget about the selection
+              new RectilinearConnection()));
+      // we can only tell the selection handler to forget about the selection
       selectionHandler.deselectAll();
     }
   }
@@ -719,17 +725,17 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
    */
   public void setNavigability(RelationEndType endType) {
     if (getSelectedElements().size() > 0 &&
-      getSelectedElements().get(0) instanceof UmlConnection) {
+            getSelectedElements().get(0) instanceof UmlConnection) {
       UmlConnection conn = (UmlConnection) getSelectedElements().get(0);
       Relation relation = (Relation) conn.getModelElement();
       // Setup a toggle
       if (endType == RelationEndType.SOURCE) {
         execute(new SetConnectionNavigabilityCommand(this, conn, endType,
-          !relation.isNavigableToElement1()));
+                !relation.isNavigableToElement1()));
       }
       if (endType == RelationEndType.TARGET) {
         execute(new SetConnectionNavigabilityCommand(this, conn, endType,
-          !relation.isNavigableToElement2()));
+                !relation.isNavigableToElement2()));
       }
     }
   }
@@ -849,7 +855,7 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
     } else if (element instanceof Association) {
       Association association = (Association) element;
       EditAssociationDialog dialog = new EditAssociationDialog(frame,
-        association, true);
+              association, true);
       dialog.setLocationRelativeTo(frame);
       dialog.setVisible(true);
       redraw();
@@ -876,7 +882,7 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
    */
   public void resizeElement(Node element, Point2D newpos, Dimension2D size) {
     ResizeElementCommand cmd = new ResizeElementCommand(this, element, newpos,
-      size);
+            size);
     execute(cmd);
   }
 
@@ -904,4 +910,36 @@ DiagramEditorNotification, DiagramOperations, NodeChangeListener {
    * {@inheritDoc}
    */
   public void nodeMoved(Node node) { }
+
+
+  /**
+   * Devuelve un texto con el conteo de elementos del diagrama.
+   */
+  public String getElementCountString() {
+    if (diagram == null) {
+      return "";
+    }
+
+    int packageCount = 0;
+    int classCount = 0;
+    int componentCount = 0;
+
+    List<DiagramElement> children = diagram.getChildren();
+    for (DiagramElement element : children) {
+      if (element instanceof PackageElement) {
+        packageCount++;
+      } else if (element instanceof ClassElement) {
+        classCount++;
+      } else if (element instanceof ComponentElement) {
+        componentCount++;
+      }
+    }
+
+    // Siempre mostramos los 3 contadores
+    return String.format(
+            "Packages: %d   Classes: %d   Components: %d",
+            packageCount, classCount, componentCount
+    );
+  }
+
 }
