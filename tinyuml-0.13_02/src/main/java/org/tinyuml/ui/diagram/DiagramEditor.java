@@ -935,11 +935,14 @@ public class DiagramEditor extends JComponent
       }
     }
 
-    // Siempre mostramos los 3 contadores
+    int total = packageCount + classCount + componentCount;
+
+    // Ahora incluye el total (Todo)
     return String.format(
-            "Packages: %d   Classes: %d   Components: %d",
-            packageCount, classCount, componentCount
+            "Packages: %d   Classes: %d   Components: %d   Todo: %d",
+            packageCount, classCount, componentCount, total
     );
   }
+
 
 }
